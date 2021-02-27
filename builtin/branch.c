@@ -425,8 +425,6 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 
 	memset(&array, 0, sizeof(array));
 
-	filter_refs(&array, filter, filter->kind | FILTER_REFS_INCLUDE_BROKEN);
-
 	if (filter->verbose)
 		maxwidth = calc_maxwidth(&array, strlen(remote_prefix));
 
@@ -436,6 +434,8 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 
 	if (verify_ref_format(format))
 		die(_("unable to parse format string"));
+
+	filter_refs(&array, filter, format, filter->kind | FILTER_REFS_INCLUDE_BROKEN);
 
 	ref_array_sort(sorting, &array);
 

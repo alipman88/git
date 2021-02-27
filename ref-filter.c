@@ -2062,6 +2062,7 @@ static int filter_ref_kind(struct ref_filter *filter, const char *refname)
 struct ref_filter_cbdata {
 	struct ref_array *array;
 	struct ref_filter *filter;
+	struct ref_format *format;
 	struct contains_cache contains_cache;
 	struct contains_cache no_contains_cache;
 };
@@ -2235,7 +2236,8 @@ static void reach_filter(struct ref_array *array,
  * as per the given ref_filter structure and finally store the
  * filtered refs in the ref_array structure.
  */
-int filter_refs(struct ref_array *array, struct ref_filter *filter, unsigned int type)
+int filter_refs(struct ref_array *array, struct ref_filter *filter,
+		struct ref_format *format, unsigned int type)
 {
 	struct ref_filter_cbdata ref_cbdata;
 	int ret = 0;
@@ -2243,6 +2245,7 @@ int filter_refs(struct ref_array *array, struct ref_filter *filter, unsigned int
 
 	ref_cbdata.array = array;
 	ref_cbdata.filter = filter;
+	ref_cbdata.format = format;
 
 	if (type & FILTER_REFS_INCLUDE_BROKEN)
 		broken = 1;
