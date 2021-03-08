@@ -440,20 +440,14 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 	ref_array_sort(sorting, &array);
 
 	for (i = 0; i < array.nr; i++) {
-		struct strbuf out = STRBUF_INIT;
-		struct strbuf err = STRBUF_INIT;
-		if (format_ref_array_item(array.items[i], format, &out, &err))
-			die("%s", err.buf);
+		char *formatted_ref = get_formatted_ref(array.items[i], format);
 		if (column_active(colopts)) {
 			assert(!filter->verbose && "--column and --verbose are incompatible");
 			 /* format to a string_list to let print_columns() do its job */
-			string_list_append(&output, out.buf);
+			string_list_append(&output, formatted_ref);
 		} else {
-			fwrite(out.buf, 1, out.len, stdout);
-			putchar('\n');
+			printf("%s\n", formatted_ref);
 		}
-		strbuf_release(&err);
-		strbuf_release(&out);
 	}
 
 	ref_array_clear(&array);

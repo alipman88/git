@@ -2433,18 +2433,25 @@ int format_ref_array_item(struct ref_array_item *info,
 	return 0;
 }
 
-void show_ref_array_item(struct ref_array_item *info,
+char *get_formatted_ref(struct ref_array_item *info,
 			 const struct ref_format *format)
 {
+	char *result;
 	struct strbuf final_buf = STRBUF_INIT;
 	struct strbuf error_buf = STRBUF_INIT;
 
 	if (format_ref_array_item(info, format, &final_buf, &error_buf))
 		die("%s", error_buf.buf);
-	fwrite(final_buf.buf, 1, final_buf.len, stdout);
+	result = strbuf_detach(&final_buf, &final_buf.len);
 	strbuf_release(&error_buf);
 	strbuf_release(&final_buf);
-	putchar('\n');
+	return result;
+}
+
+void show_ref_array_item(struct ref_array_item *info,
+			 const struct ref_format *format)
+{
+	printf("%s\n", get_formatted_ref(info, format));
 }
 
 void pretty_print_ref(const char *name, const struct object_id *oid,
