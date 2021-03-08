@@ -47,6 +47,7 @@ static int list_tags(struct ref_filter *filter, struct ref_sorting *sorting,
 	if (filter->lines == -1)
 		filter->lines = 0;
 
+	format->custom = !!format->format;
 	if (!format->format) {
 		if (filter->lines) {
 			to_free = xstrfmt("%s %%(contents:lines=%d)",

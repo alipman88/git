@@ -2131,6 +2131,7 @@ static int ref_filter_handler(const char *refname, const struct object_id *oid, 
 	struct ref_array_item *ref = new_ref_array_item(refname, oid);
 	struct commit *commit = NULL;
 	unsigned int kind;
+	const char *formatted_ref;
 
 	if (flag & REF_BAD_NAME) {
 		warning(_("ignoring ref with broken name %s"), refname);
@@ -2147,7 +2148,9 @@ static int ref_filter_handler(const char *refname, const struct object_id *oid, 
 	if (!(kind & filter->kind))
 		return free_array_item(ref);
 
-	if (!filter_pattern_match(filter, refname))
+	formatted_ref = format->custom && *filter->name_patterns ?
+	  get_formatted_ref(ref, format) : refname;
+	if (!filter_pattern_match(filter, formatted_ref))
 		return free_array_item(ref);
 
 	if (filter->points_at.nr && !match_points_at(&filter->points_at, oid, refname))

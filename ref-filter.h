@@ -77,7 +77,8 @@ struct ref_format {
 	int quote_style,
 		use_color,
 		abbrev,
-		verbose;
+		verbose,
+		custom;
 
 	/* Internal state to ref-filter */
 	int need_color_reset_at_eol;

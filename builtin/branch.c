@@ -399,6 +399,7 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 
 	memset(&array, 0, sizeof(array));
 
+	format->custom = !!format->format;
 	if (!format->format)
 		format->format = to_free = build_format(format, remote_prefix);
 	format->use_color = branch_use_color;
