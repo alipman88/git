@@ -304,31 +304,6 @@ static int delete_branches(int argc, const char **argv, int force, int kinds,
 	return ret;
 }
 
-static int calc_maxwidth(struct ref_array *refs, int remote_bonus)
-{
-	int i, max = 0;
-	for (i = 0; i < refs->nr; i++) {
-		struct ref_array_item *it = refs->items[i];
-		const char *desc = it->refname;
-		int w;
-
-		skip_prefix(it->refname, "refs/heads/", &desc);
-		skip_prefix(it->refname, "refs/remotes/", &desc);
-		if (it->kind == FILTER_REFS_DETACHED_HEAD) {
-			char *head_desc = get_head_description();
-			w = utf8_strwidth(head_desc);
-			free(head_desc);
-		} else
-			w = utf8_strwidth(desc);
-
-		if (it->kind == FILTER_REFS_REMOTES)
-			w += remote_bonus;
-		if (w > max)
-			max = w;
-	}
-	return max;
-}
-
 static const char *quote_literal_for_format(const char *s)
 {
 	static struct strbuf buf = STRBUF_INIT;
@@ -348,7 +323,7 @@ static const char *quote_literal_for_format(const char *s)
 	return buf.buf;
 }
 
-static char *build_format(struct ref_format *format, int maxwidth, const char *remote_prefix)
+static char *build_format(struct ref_format *format, const char *remote_prefix)
 {
 	struct strbuf fmt = STRBUF_INIT;
 	struct strbuf local = STRBUF_INIT;
@@ -371,7 +346,7 @@ static char *build_format(struct ref_format *format, int maxwidth, const char *r
 		else
 			strbuf_addf(&obname, "%%(objectname:short=%d)", format->abbrev);
 
-		strbuf_addf(&local, "%%(align:%d,left)%%(refname:lstrip=2)%%(end)", maxwidth);
+		strbuf_addf(&local, "%%(align:-1,left)%%(refname:lstrip=2)%%(end)");
 		strbuf_addstr(&local, branch_get_color(BRANCH_COLOR_RESET));
 		strbuf_addf(&local, " %s ", obname.buf);
 
@@ -386,10 +361,10 @@ static char *build_format(struct ref_format *format, int maxwidth, const char *r
 		else
 			strbuf_addf(&local, "%%(if)%%(upstream:track)%%(then)%%(upstream:track) %%(end)%%(contents:subject)");
 
-		strbuf_addf(&remote, "%%(align:%d,left)%s%%(refname:lstrip=2)%%(end)%s"
+		strbuf_addf(&remote, "%%(align:-1,left)%s%%(refname:lstrip=2)%%(end)%s"
 			    "%%(if)%%(symref)%%(then) -> %%(symref:short)"
 			    "%%(else) %s %%(contents:subject)%%(end)",
-			    maxwidth, quote_literal_for_format(remote_prefix),
+			    quote_literal_for_format(remote_prefix),
 			    branch_get_color(BRANCH_COLOR_RESET), obname.buf);
 		strbuf_release(&obname);
 	} else {
@@ -411,7 +386,6 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 {
 	int i;
 	struct ref_array array;
-	int maxwidth = 0;
 	const char *remote_prefix = "";
 	char *to_free = NULL;
 
@@ -425,11 +399,8 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 
 	memset(&array, 0, sizeof(array));
 
-	if (format->verbose)
-		maxwidth = calc_maxwidth(&array, strlen(remote_prefix));
-
 	if (!format->format)
-		format->format = to_free = build_format(format, maxwidth, remote_prefix);
+		format->format = to_free = build_format(format, remote_prefix);
 	format->use_color = branch_use_color;
 
 	if (verify_ref_format(format))

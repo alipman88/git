@@ -51,7 +51,7 @@ typedef enum { SOURCE_NONE = 0, SOURCE_OBJ, SOURCE_OTHER } info_source;
 
 struct align {
 	align_type position;
-	unsigned int width;
+	int width;
 };
 
 struct if_then_else {
@@ -153,7 +153,7 @@ static struct used_atom {
 		char *head;
 	} u;
 } *used_atom;
-static int used_atom_cnt, need_tagged, need_symref;
+static int used_atom_cnt, need_tagged, need_symref, max_refname_len;
 
 /*
  * Expand string, append it to strbuf *sb, then return error code ret.
@@ -426,7 +426,7 @@ static int align_atom_parser(const struct ref_format *format, struct used_atom *
 	struct align *align = &atom->u.align;
 	struct string_list params = STRING_LIST_INIT_DUP;
 	int i;
-	unsigned int width = ~0U;
+	int width = 0;
 
 	if (!arg)
 		return strbuf_addf_ret(err, -1, _("expected format: %%(align:<width>,<position>)"));
@@ -447,12 +447,12 @@ static int align_atom_parser(const struct ref_format *format, struct used_atom *
 			}
 			align->position = position;
 		} else if (skip_prefix(s, "width=", &s)) {
-			if (strtoul_ui(s, 10, &width)) {
+			if (strtol_i(s, 10, &width)) {
 				strbuf_addf(err, _("unrecognized width:%s"), s);
 				string_list_clear(&params, 0);
 				return -1;
 			}
-		} else if (!strtoul_ui(s, 10, &width))
+		} else if (!strtol_i(s, 10, &width))
 			;
 		else if ((position = parse_align_position(s)) >= 0)
 			align->position = position;
@@ -463,10 +463,6 @@ static int align_atom_parser(const struct ref_format *format, struct used_atom *
 		}
 	}
 
-	if (width == ~0U) {
-		string_list_clear(&params, 0);
-		return strbuf_addf_ret(err, -1, _("positive width expected with the %%(align) atom"));
-	}
 	align->width = width;
 	string_list_clear(&params, 0);
 	return 0;
@@ -715,8 +711,9 @@ static void end_align_handler(struct ref_formatting_stack **stack)
 	struct ref_formatting_stack *cur = *stack;
 	struct align *align = (struct align *)cur->at_end_data;
 	struct strbuf s = STRBUF_INIT;
+	int align_width = align->width < 0 ? max_refname_len : align->width;
 
-	strbuf_utf8_align(&s, align->position, align->width, cur->output.buf);
+	strbuf_utf8_align(&s, align->position, align_width, cur->output.buf);
 	strbuf_swap(&cur->output, &s);
 	strbuf_release(&s);
 }
@@ -2104,6 +2101,24 @@ void ref_array_clear(struct ref_array *array)
 	}
 }
 
+static void adjust_maxwidth(struct ref_array_item *it)
+{
+	const char *desc = it->refname;
+	int w;
+
+	skip_prefix(it->refname, "refs/heads/", &desc);
+	skip_prefix(it->refname, "refs/remotes/", &desc);
+	if (it->kind == FILTER_REFS_DETACHED_HEAD) {
+		char *head_desc = get_head_description();
+		w = utf8_strwidth(head_desc);
+		free(head_desc);
+	} else
+		w = utf8_strwidth(desc);
+
+	if (w > max_refname_len)
+		max_refname_len = w;
+}
+
 /*
  * A call-back given to for_each_ref().  Filter refs and keep them for
  * later object processing.
@@ -2168,6 +2183,8 @@ static int ref_filter_handler(const char *refname, const struct object_id *oid, 
 	ref->commit = commit;
 	ref->flag = flag;
 	ref->kind = kind;
+	if (format->verbose)
+		adjust_maxwidth(ref);
 
 	return 0;
 }
