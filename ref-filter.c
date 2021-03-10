@@ -2112,6 +2112,7 @@ static int ref_filter_handler(const char *refname, const struct object_id *oid, 
 {
 	struct ref_filter_cbdata *ref_cbdata = cb_data;
 	struct ref_filter *filter = ref_cbdata->filter;
+	struct ref_format *format = ref_cbdata->format;
 	struct ref_array_item *ref = new_ref_array_item(refname, oid);
 	struct commit *commit = NULL;
 	unsigned int kind;
@@ -2143,7 +2144,7 @@ static int ref_filter_handler(const char *refname, const struct object_id *oid, 
 	 * non-commits early. The actual filtering is done later.
 	 */
 	if (filter->reachable_from || filter->unreachable_from ||
-	    filter->with_commit || filter->no_commit || filter->verbose) {
+	    filter->with_commit || filter->no_commit || format->verbose) {
 		commit = lookup_commit_reference_gently(the_repository, oid, 1);
 		if (!commit)
 			return free_array_item(ref);

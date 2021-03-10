@@ -348,7 +348,7 @@ static const char *quote_literal_for_format(const char *s)
 	return buf.buf;
 }
 
-static char *build_format(struct ref_filter *filter, int maxwidth, const char *remote_prefix)
+static char *build_format(struct ref_format *format, int maxwidth, const char *remote_prefix)
 {
 	struct strbuf fmt = STRBUF_INIT;
 	struct strbuf local = STRBUF_INIT;
@@ -361,21 +361,21 @@ static char *build_format(struct ref_filter *filter, int maxwidth, const char *r
 	strbuf_addf(&remote, "  %s",
 		    branch_get_color(BRANCH_COLOR_REMOTE));
 
-	if (filter->verbose) {
+	if (format->verbose) {
 		struct strbuf obname = STRBUF_INIT;
 
-		if (filter->abbrev < 0)
+		if (format->abbrev < 0)
 			strbuf_addf(&obname, "%%(objectname:short)");
-		else if (!filter->abbrev)
+		else if (!format->abbrev)
 			strbuf_addf(&obname, "%%(objectname)");
 		else
-			strbuf_addf(&obname, "%%(objectname:short=%d)", filter->abbrev);
+			strbuf_addf(&obname, "%%(objectname:short=%d)", format->abbrev);
 
 		strbuf_addf(&local, "%%(align:%d,left)%%(refname:lstrip=2)%%(end)", maxwidth);
 		strbuf_addstr(&local, branch_get_color(BRANCH_COLOR_RESET));
 		strbuf_addf(&local, " %s ", obname.buf);
 
-		if (filter->verbose > 1)
+		if (format->verbose > 1)
 		{
 			strbuf_addf(&local, "%%(if:notequals=*)%%(HEAD)%%(then)%%(if)%%(worktreepath)%%(then)(%s%%(worktreepath)%s) %%(end)%%(end)",
 				    branch_get_color(BRANCH_COLOR_WORKTREE), branch_get_color(BRANCH_COLOR_RESET));
@@ -425,11 +425,11 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 
 	memset(&array, 0, sizeof(array));
 
-	if (filter->verbose)
+	if (format->verbose)
 		maxwidth = calc_maxwidth(&array, strlen(remote_prefix));
 
 	if (!format->format)
-		format->format = to_free = build_format(filter, maxwidth, remote_prefix);
+		format->format = to_free = build_format(format, maxwidth, remote_prefix);
 	format->use_color = branch_use_color;
 
 	if (verify_ref_format(format))
@@ -442,7 +442,7 @@ static void print_ref_list(struct ref_filter *filter, struct ref_sorting *sortin
 	for (i = 0; i < array.nr; i++) {
 		char *formatted_ref = get_formatted_ref(array.items[i], format);
 		if (column_active(colopts)) {
-			assert(!filter->verbose && "--column and --verbose are incompatible");
+			assert(!format->verbose && "--column and --verbose are incompatible");
 			 /* format to a string_list to let print_columns() do its job */
 			string_list_append(&output, formatted_ref);
 		} else {
@@ -621,7 +621,7 @@ int cmd_branch(int argc, const char **argv, const char *prefix)
 
 	struct option options[] = {
 		OPT_GROUP(N_("Generic options")),
-		OPT__VERBOSE(&filter.verbose,
+		OPT__VERBOSE(&format.verbose,
 			N_("show hash and subject, give twice for upstream branch")),
 		OPT__QUIET(&quiet, N_("suppress informational messages")),
 		OPT_SET_INT('t', "track",  &track, N_("set up tracking mode (see git-pull(1))"),
@@ -637,7 +637,7 @@ int cmd_branch(int argc, const char **argv, const char *prefix)
 		OPT_NO_CONTAINS(&filter.no_commit, N_("print only branches that don't contain the commit")),
 		OPT_WITH(&filter.with_commit, N_("print only branches that contain the commit")),
 		OPT_WITHOUT(&filter.no_commit, N_("print only branches that don't contain the commit")),
-		OPT__ABBREV(&filter.abbrev),
+		OPT__ABBREV(&format.abbrev),
 
 		OPT_GROUP(N_("Specific git-branch actions:")),
 		OPT_SET_INT('a', "all", &filter.kind, N_("list both remote-tracking and local branches"),
@@ -669,7 +669,7 @@ int cmd_branch(int argc, const char **argv, const char *prefix)
 
 	memset(&filter, 0, sizeof(filter));
 	filter.kind = FILTER_REFS_BRANCHES;
-	filter.abbrev = -1;
+	format.abbrev = -1;
 
 	if (argc == 2 && !strcmp(argv[1], "-h"))
 		usage_with_options(builtin_branch_usage, options);
@@ -701,12 +701,12 @@ int cmd_branch(int argc, const char **argv, const char *prefix)
 	    list + edit_description + unset_upstream > 1)
 		usage_with_options(builtin_branch_usage, options);
 
-	if (filter.abbrev == -1)
-		filter.abbrev = DEFAULT_ABBREV;
+	if (format.abbrev == -1)
+		format.abbrev = DEFAULT_ABBREV;
 	filter.ignore_case = icase;
 
 	finalize_colopts(&colopts, -1);
-	if (filter.verbose) {
+	if (format.verbose) {
 		if (explicitly_enable_column(colopts))
 			die(_("--column and --verbose are incompatible"));
 		colopts = 0;

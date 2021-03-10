@@ -66,8 +66,6 @@ struct ref_filter {
 		detached : 1;
 	unsigned int kind,
 		lines;
-	int abbrev,
-		verbose;
 };
 
 struct ref_format {
@@ -76,8 +74,10 @@ struct ref_format {
 	 * verify_ref_format() afterwards to finalize.
 	 */
 	const char *format;
-	int quote_style;
-	int use_color;
+	int quote_style,
+		use_color,
+		abbrev,
+		verbose;
 
 	/* Internal state to ref-filter */
 	int need_color_reset_at_eol;
