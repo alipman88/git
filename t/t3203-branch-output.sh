@@ -361,7 +361,7 @@ test_expect_success 'worktree colors correct' '
 test_expect_success "set up color tests" '
 	echo "<RED>main<RESET>" >expect.color &&
 	echo "main" >expect.bare &&
-	color_args="--format=%(color:red)%(refname:short) --list main"
+	color_args="--format=%(color:red)%(refname:short) --list *main*"
 '
 
 test_expect_success '%(color) omitted without tty' '
